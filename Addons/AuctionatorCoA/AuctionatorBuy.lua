@@ -193,6 +193,23 @@ end
 
 -----------------------------------------
 
+-- Positionne la fenetre de confirmation d'achat pres du curseur, pour cliquer
+-- "Acheter" sans deplacer la souris jusqu'a sa position d'ancrage fixe.
+local function Atr_Buy_PositionNearCursor(frame)
+
+	local scale = frame:GetEffectiveScale();
+	local x, y = GetCursorPosition();
+	x = x / scale;
+	y = y / scale;
+
+	frame:ClearAllPoints();
+	frame:SetPoint ("TOPLEFT", UIParent, "BOTTOMLEFT", x + 12, y - 12);
+	frame:SetClampedToScreen (true);
+
+end
+
+-----------------------------------------
+
 local function Atr_Buy_ShowLoadingState()
 
 	Atr_Buy_Confirm_OKBut:SetText (ZT("Buy"))
@@ -243,6 +260,7 @@ local function Atr_Buy_ShowCurrentSelection(forceFirstPage)
 	Atr_Buy_Confirm_OKBut:SetText (ZT("Buy"))
 	Atr_Buy_Confirm_OKBut:Disable();
 	if (not gAtr_Buy_Instant) then
+		Atr_Buy_PositionNearCursor (Atr_Buy_Confirm_Frame);
 		Atr_Buy_Confirm_Frame:Show();
 	end
 
