@@ -1,0 +1,10 @@
+## Interface: 30300
+## Title: CoA Buff Manager
+## Notes: Gestion des buffs et audit du grimoire pour Conquest of Azeroth
+## Author: FCBA / OpenAI
+## Version: 0.23.0
+## SavedVariables: CoABuffManagerDB
+
+BuffDatabase.lua
+Comm.lua
+CoABuffManager.lua

@@ -1,0 +1,10 @@
+## Interface: 30300
+## Title: DPS Logger
+## Notes: Telemetrie de combat factuelle pour le simulateur CoASim
+## Author: You
+## Version: 2.6.0
+## SavedVariables: DPSLoggerDB, DPSLoggerSettings, DPSLoggerHUDSettings, DPSLoggerPriorityDB
+
+DPSLogger.lua
+DPSLoggerHUD.lua
+DPSLoggerPriority.lua

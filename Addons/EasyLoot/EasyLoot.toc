@@ -1,0 +1,10 @@
+## Interface: 30300
+## Title: EasyLoot
+## Notes: Annonce des pieces d'equipement en raid, verrous et depouillement des jets - made by Omagad
+## Author: Omagad
+## Version: 0.5.3
+## SavedVariables: EasyLootDB
+
+EasyLoot.lua
+EasyLoot_Rolls.lua
+EasyLoot_UI.lua

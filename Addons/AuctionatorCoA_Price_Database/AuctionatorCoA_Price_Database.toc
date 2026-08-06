@@ -1,0 +1,6 @@
+﻿## Interface: 30300
+## Title: AuctionatorCoA_Price_Database
+## Notes: AH data for Auctionator (CoA fork)
+## Dependencies: AuctionatorCoA
+## LoadOnDemand: 0
+## SavedVariables: AUCTIONATOR_PRICE_DATABASE
