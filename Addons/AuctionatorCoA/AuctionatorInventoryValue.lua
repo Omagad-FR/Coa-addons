@@ -4,6 +4,8 @@ local zc = addonTable.zc;
 local ATR_VALUE_ROWS = 18;
 local ATR_VALUE_GUILD_TIMEOUT = 3;
 local ATR_VALUE_STALE_PRICE_AGE = 24 * 60 * 60;
+local ATR_VALUE_SELL_MIN_WEIGHT = 3;		-- minimum weighted history samples before trusting the average
+local ATR_VALUE_SELL_RATIO = 1.3;			-- current price 30% above the historical average = good time to sell
 
 local gValueFrame = nil;
 local gValueRows = {};
@@ -295,6 +297,37 @@ local function Atr_ValueMergeSnapshot (combined, snapshot, location)
 	end
 end
 
+local function Atr_ValueHistoricalAverage (itemName)
+	if (type(AUCTIONATOR_PRICING_HISTORY) ~= "table") then
+		return nil, 0;
+	end
+
+	local hist = AUCTIONATOR_PRICING_HISTORY[itemName];
+	if (type(hist) ~= "table") then
+		return nil, 0;
+	end
+
+	local weightedSum = 0;
+	local totalWeight = 0;
+
+	for tag,entry in pairs (hist) do
+		if (tag ~= "is" and type(entry) == "string") then
+			local _,_,price,stacksize,numauctions = ParseHist (tag, entry);
+			local weight = (numauctions and numauctions > 0) and numauctions or (stacksize or 0);
+			if (type(price) == "number" and price > 0 and weight > 0) then
+				weightedSum = weightedSum + price * weight;
+				totalWeight = totalWeight + weight;
+			end
+		end
+	end
+
+	if (totalWeight < ATR_VALUE_SELL_MIN_WEIGHT) then
+		return nil, totalWeight;
+	end
+
+	return weightedSum / totalWeight, totalWeight;
+end
+
 local function Atr_ValueBuildResults ()
 	Atr_ValueEnsureData();
 	local combined = {};
@@ -337,6 +370,17 @@ local function Atr_ValueBuildResults ()
 				item.unitPrice = unitPrice;
 				item.value = value;
 				item.location = Atr_ValueLocationLabel(item.locations);
+
+				-- sell-now signal: only meaningful for items actually sitting in a bank
+				item.sellNow = false;
+				if (item.locations.bank or item.locations.personal) then
+					local avgPrice,samples = Atr_ValueHistoricalAverage(itemName);
+					if (avgPrice and unitPrice >= avgPrice * ATR_VALUE_SELL_RATIO) then
+						item.sellNow = true;
+						item.avgPrice = avgPrice;
+					end
+				end
+
 				table.insert(results, item);
 			end
 		else
@@ -496,7 +540,13 @@ function Atr_InventoryValueRefresh (keepOffset)
 			row.count:SetText(item.count);
 			row.unit:SetText(zc.priceToMoneyString(item.unitPrice));
 			row.value:SetText(zc.priceToMoneyString(item.value));
-			row.location:SetText(item.location);
+			if (item.sellNow) then
+				row.value:SetTextColor(0.2, 1, 0.2);
+				row.location:SetText(item.location.." |cff20ff20VENDS!|r");
+			else
+				row.value:SetTextColor(1, 1, 1);
+				row.location:SetText(item.location);
+			end
 			row:Show();
 		else
 			row.itemLink = nil;
@@ -560,6 +610,21 @@ function Atr_InventoryValueScan ()
 		message = string.gsub(message, "banque de guilde en cours", Atr_ValueContextLabel(gValueGuildContext).." en cours");
 	end
 	zc.msg_atr("Auctionator: "..message..".");
+
+	local sellNowCount = 0;
+	for _,item in ipairs(gValueResults) do
+		if (item.sellNow) then
+			sellNowCount = sellNowCount + 1;
+			if (sellNowCount <= ATR_VALUE_ROWS) then
+				zc.msg_yellow("|cff20ff20[Vends maintenant]|r "..(item.link or item.name)
+					.." x"..item.count.." - prix actuel "..zc.priceToMoneyString(item.unitPrice)
+					.." vs moyenne "..zc.priceToMoneyString(item.avgPrice));
+			end
+		end
+	end
+	if (sellNowCount > 0) then
+		zc.msg_yellow("Auctionator: "..sellNowCount.." objet(s) de la banque au-dessus de leur prix moyen ("..math.floor((ATR_VALUE_SELL_RATIO - 1) * 100).."%+) - bon moment pour vendre.");
+	end
 end
 
 function Atr_ShowInventoryValueFrame ()

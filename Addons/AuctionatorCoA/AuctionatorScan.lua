@@ -1383,6 +1383,12 @@ local function Atr_FindReliableBargains ()
 			local profit = expectedRevenue - market.totalBuyout;
 
 			if (discount >= minDiscount and profit >= minProfit) then
+				local isEpic = false;
+				if (market.itemLink) then
+					local _,_,itemRarity,_,_,_,_,_,itemEquipLoc = GetItemInfo (market.itemLink);
+					isEpic = (itemRarity == 4 and itemEquipLoc ~= nil and itemEquipLoc ~= "");
+				end
+
 				table.insert (bargains, {
 					name = name;
 					itemLink = market.itemLink;
@@ -1393,6 +1399,7 @@ local function Atr_FindReliableBargains ()
 					historySamples = historySamples;
 					discount = discount;
 					profit = profit;
+					isEpic = isEpic;
 				});
 			end
 		end
@@ -1419,7 +1426,18 @@ local function Atr_PrintBargainAlerts (bargains)
 
 	local maxResults = AUCTIONATOR_SAVEDVARS.BARGAIN_MAX_RESULTS or 20;
 	local shown = math.min (#gLastBargains, maxResults);
+
+	local epicCount = 0;
+	for _,deal in ipairs (gLastBargains) do
+		if (deal.isEpic) then
+			epicCount = epicCount + 1;
+		end
+	end
+
 	local title = shown.." bonne(s) affaire(s) detectee(s) - /atr deals list";
+	if (epicCount > 0) then
+		title = title.." dont "..epicCount.." epique(s) sous-evalue(s)";
+	end
 
 	PlaySound ("AuctionWindowOpen");
 	if (RaidNotice_AddMessage and RaidWarningFrame and ChatTypeInfo and ChatTypeInfo["RAID_WARNING"]) then
@@ -1430,7 +1448,8 @@ local function Atr_PrintBargainAlerts (bargains)
 	for index = 1,shown do
 		local deal = gLastBargains[index];
 		local label = deal.itemLink or deal.name;
-		zc.msg_atr ("|cff00ff00[Bon plan]|r "..label.." x"..deal.quantity
+		local tag = deal.isEpic and "|cffa335ee[EPIQUE sous-evalue]|r " or "|cff00ff00[Bon plan]|r ";
+		zc.msg_atr (tag..label.." x"..deal.quantity
 			.." - achat "..zc.priceToMoneyString(deal.buyout)
 			..", reference "..zc.priceToMoneyString(deal.referencePrice).."/u"
 			..", -"..deal.discount.."%, profit net estime "..zc.priceToMoneyString(deal.profit));

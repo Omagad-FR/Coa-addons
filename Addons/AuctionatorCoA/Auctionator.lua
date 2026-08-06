@@ -159,9 +159,6 @@ function Atr_RegisterEvents(self)
 	self:RegisterEvent("UI_ERROR_MESSAGE");
 	self:RegisterEvent("WHO_LIST_UPDATE");
 	self:RegisterEvent("PLAYER_ENTERING_WORLD");
-	self:RegisterEvent("QUEST_GREETING");
-	self:RegisterEvent("GOSSIP_SHOW");
-	self:RegisterEvent("QUEST_DETAIL");
 
 end
 
@@ -187,9 +184,6 @@ function Atr_EventHandler()
 	if (event == "UI_ERROR_MESSAGE")			then	if (Atr_Buy_OnErrorMessage) then Atr_Buy_OnErrorMessage(arg1); end end;
 	if (event == "WHO_LIST_UPDATE")				then	Atr_OnWhoListUpdate(); 			end;
 	if (event == "PLAYER_ENTERING_WORLD")		then	Atr_OnPlayerEnteringWorld(); 	end;
-	if ((event == "QUEST_GREETING" or event == "GOSSIP_SHOW" or event == "QUEST_DETAIL") and Atr_ProfessionBoardOnEvent) then
-		Atr_ProfessionBoardOnEvent (event);
-	end
 
 end
 
@@ -411,9 +405,6 @@ local function Atr_SlashCmdFunction(msg)
 	elseif (cmd == "watch" and Atr_HandleWatchCommand) then
 		local watchAction,watchItem = string.match (msg, "^%s*%S+%s*(%S*)%s*(.-)%s*$");
 		Atr_HandleWatchCommand (watchAction, watchItem);
-
-	elseif (cmd == "board" and Atr_ProfessionBoardCommand) then
-		Atr_ProfessionBoardCommand (param1);
 
 	elseif (cmd == "value" and Atr_InventoryValueCommand) then
 		Atr_InventoryValueCommand (param1, param2);
@@ -805,13 +796,6 @@ function Atr_UpdateCommandsHelp ()
 		watchItems = #AUCTIONATOR_SAVEDVARS.BARGAIN_WATCHLIST;
 	end
 
-	local observedDays = 0;
-	if (AUCTIONATOR_PROFESSION_BOARD_HISTORY and AUCTIONATOR_PROFESSION_BOARD_HISTORY.days) then
-		for _,_ in pairs (AUCTIONATOR_PROFESSION_BOARD_HISTORY.days) do
-			observedDays = observedDays + 1;
-		end
-	end
-
 	local helpText = "<html><body>"
 		.."<h1>|cffffd100Scans du marche|r</h1>"
 		.."<p>|cff00ff00Full Scan|r : catalogue complet de l'HDV, a lancer occasionnellement.<br/>"
@@ -833,10 +817,6 @@ function Atr_UpdateCommandsHelp ()
 		.."|cffffffff/atr deals list|r - reaffiche les derniers resultats.<br/>"
 		.."Reglage actuel : -"..discount.."%, profit "..zc.priceToMoneyString(profit)
 		..", commission "..cut.."%.</p>"
-		.."<h1>|cffffd100Tableau de professions|r</h1>"
-		.."<p>|cffffffff/atr board|r - enregistre les quetes visibles aujourd'hui.<br/>"
-		.."|cffffffff/atr board history|r - affiche les rotations frequentes.<br/>"
-		.."Historique actuel : "..observedDays.." jour(s) observe(s).</p>"
 		.."<h1>|cffffd100Objets de valeur|r</h1>"
 		.."<p>|cffffffff/atr value|r - ouvre le classement de tes objets.<br/>"
 		.."|cffffffff/atr value scan|r - rescane les sacs et les banques ouvertes.<br/>"
