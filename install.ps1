@@ -1,8 +1,8 @@
 # CoA Addons — installeur
 # Telecharge les addons Conquest of Azeroth (Auctionator fork, CoABuffManager,
 # DPSLogger, EasyLoot) et les installe dans le client Ascension detecte sur ce
-# poste. La base de prix d'hotel des ventes (AuctionatorCoA.lua) est un choix
-# separe : par defaut elle n'est jamais touchee.
+# poste. La base de prix d'hotel des ventes (AuctionatorCoA_Price_Database.lua)
+# est un choix separe : par defaut elle n'est jamais touchee.
 #
 # Usage (fichier local) :
 #   powershell -ExecutionPolicy Bypass -File install.ps1              # addons seulement
@@ -187,11 +187,16 @@ if ($InstallAddons) {
     Write-Log "Addons non touches (-ScanOnly)."
 }
 
-# --- copie de la base de prix. Par defaut : jamais touchee si elle existe deja.
-# -Scan ou -ScanOnly force l'ecrasement (avec sauvegarde .bak de l'ancienne).
+# --- copie de la base de prix. Le vrai fichier de scan est
+# AuctionatorCoA_Price_Database.lua (variable AUCTIONATOR_PRICE_DATABASE,
+# declaree dans AuctionatorCoA_Price_Database.toc) — PAS AuctionatorCoA.lua,
+# qui ne contient que les reglages perso (AUCTIONATOR_SAVEDVARS).
+# Par defaut : jamais touche si le fichier existe deja.
+# -Scan ou -ScanOnly force l'ecrasement (avec sauvegarde .bak de l'ancien).
 
-$sourceSaved = Join-Path $extracted.FullName "SavedVariables\AuctionatorCoA.lua"
-$targetSaved = Join-Path $savedVarsDest "AuctionatorCoA.lua"
+$scanFileName = "AuctionatorCoA_Price_Database.lua"
+$sourceSaved = Join-Path $extracted.FullName "SavedVariables\$scanFileName"
+$targetSaved = Join-Path $savedVarsDest $scanFileName
 if (Test-Path $sourceSaved) {
     if (-not (Test-Path $targetSaved)) {
         Copy-Item -LiteralPath $sourceSaved -Destination $targetSaved
@@ -200,9 +205,9 @@ if (Test-Path $sourceSaved) {
         $backup = "$targetSaved.bak"
         Copy-Item -LiteralPath $targetSaved -Destination $backup -Force
         Copy-Item -LiteralPath $sourceSaved -Destination $targetSaved -Force
-        Write-Log "AuctionatorCoA.lua ecrase (ancien scan sauvegarde dans $backup)."
+        Write-Log "$scanFileName ecrase (ancien scan sauvegarde dans $backup)."
     } else {
-        Write-Log "AuctionatorCoA.lua existe deja pour ce compte : conserve. Relance avec -Scan pour l'ecraser."
+        Write-Log "$scanFileName existe deja pour ce compte : conserve. Relance avec -Scan pour l'ecraser."
     }
 }
 

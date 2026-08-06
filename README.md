@@ -21,8 +21,8 @@ powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.c
 ```
 
 **Installer / écraser la base de prix d'hôtel des ventes** (le full scan
-`AuctionatorCoA.lua` — ne touche pas aux addons, sauvegarde l'ancien scan en
-`.bak` avant d'écraser) :
+`AuctionatorCoA_Price_Database.lua` — ne touche pas aux addons, sauvegarde
+l'ancien scan en `.bak` avant d'écraser) :
 
 ```powershell
 powershell -ExecutionPolicy Bypass -Command "&([scriptblock]::Create((iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb).Content)) -ScanOnly"
