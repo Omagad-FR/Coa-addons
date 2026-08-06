@@ -4,7 +4,12 @@ namespace OmagadAddonsInstaller;
 
 // Un "groupe" est ce que l'utilisateur coche dans l'interface. AuctionatorCoA
 // entraine toujours ses deux dependances : separement, l'addon ne charge pas.
-internal sealed record AddonGroup(string Label, string[] Folders);
+// Le premier dossier de Folders porte le .toc dont on lit "## Version:" pour
+// afficher la version installee.
+internal sealed record AddonGroup(string Label, string[] Folders)
+{
+    public string PrimaryFolder => Folders[0];
+}
 
 internal static class AddonCatalog
 {
@@ -22,6 +27,7 @@ internal static class AddonCatalog
 internal sealed class InstallResult
 {
     public List<string> AddonsInstalled { get; } = new();
+    public List<string> VersionChanges { get; } = new();
     public bool ScanInstalled { get; set; }
     public string? ScanMessage { get; set; }
     public List<string> Errors { get; } = new();
@@ -72,6 +78,8 @@ internal static class AddonInstaller
 
         foreach (var group in selectedGroups)
         {
+            var oldVersion = ReadTocVersion(addonsDest, group.PrimaryFolder);
+
             foreach (var folderName in group.Folders)
             {
                 var source = Path.Combine(sourceAddonsRoot, folderName);
@@ -86,12 +94,25 @@ internal static class AddonInstaller
                     if (Directory.Exists(target)) Directory.Delete(target, recursive: true);
                     CopyDirectory(source, target);
                     result.AddonsInstalled.Add(folderName);
-                    log($"Addon installe (ecrase) : {folderName}");
                 }
                 catch (Exception ex)
                 {
                     result.Errors.Add($"{folderName} : {ex.Message}");
                 }
+            }
+
+            var newVersion = ReadTocVersion(addonsDest, group.PrimaryFolder);
+            if (newVersion is not null)
+            {
+                var line = (oldVersion is null || oldVersion == newVersion)
+                    ? $"{group.Label} : version {newVersion}"
+                    : $"{group.Label} : {oldVersion} -> {newVersion}";
+                result.VersionChanges.Add(line);
+                log(line);
+            }
+            else
+            {
+                log($"{group.Label} installe (version introuvable dans le .toc).");
             }
         }
 
@@ -125,6 +146,21 @@ internal static class AddonInstaller
         }
 
         return result;
+    }
+
+    // Lit "## Version: ..." dans <addonsFolder>\<folderName>\<folderName>.toc. Renvoie null si
+    // l'addon n'est pas installe ou si son .toc n'a pas de champ Version (cas des dependances
+    // AuctionatorCoA_Price_Database/Pricing_History, qui n'en declarent pas).
+    public static string? ReadTocVersion(string addonsFolder, string folderName)
+    {
+        var tocPath = Path.Combine(addonsFolder, folderName, folderName + ".toc");
+        if (!File.Exists(tocPath)) return null;
+        foreach (var line in File.ReadLines(tocPath))
+        {
+            if (line.StartsWith("## Version:", StringComparison.OrdinalIgnoreCase))
+                return line["## Version:".Length..].Trim();
+        }
+        return null;
     }
 
     private static void CopyDirectory(string source, string target)

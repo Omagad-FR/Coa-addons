@@ -124,6 +124,26 @@ public sealed class MainForm : Form
         _status.Text = _game is null
             ? "Client introuvable automatiquement — clique sur Installer pour le renseigner a la main."
             : $"Jeu detecte : {_game}";
+        RefreshInstalledVersions();
+    }
+
+    // Affiche la version installee (lue dans le .toc) a cote de chaque addon, ou
+    // "non installe" si le dossier n'existe pas encore chez ce joueur.
+    private void RefreshInstalledVersions()
+    {
+        if (_game is null) return;
+        var addonsDest = GameLocator.GetAddonsFolder(_game);
+        for (var i = 0; i < AddonCatalog.Groups.Length; i++)
+        {
+            var group = AddonCatalog.Groups[i];
+            var version = AddonInstaller.ReadTocVersion(addonsDest, group.PrimaryFolder);
+            var label = version is not null
+                ? $"{group.Label} — installe : {version}"
+                : $"{group.Label} — non installe";
+            var wasChecked = _addonList.GetItemChecked(i);
+            _addonList.Items[i] = label;
+            _addonList.SetItemChecked(i, wasChecked);
+        }
     }
 
     private async Task RunInstallAsync()
@@ -146,6 +166,7 @@ public sealed class MainForm : Form
                     return;
                 }
                 _game = game;
+                RefreshInstalledVersions();
             }
 
             var accounts = GameLocator.GetAccounts(game);
@@ -211,10 +232,13 @@ public sealed class MainForm : Form
 
             try { Directory.Delete(Path.GetDirectoryName(extractedRoot)!, recursive: true); } catch { }
 
+            RefreshInstalledVersions();
             Log("Termine. Relance le jeu (ou /reload en jeu) pour charger les addons.");
+            var summary = result.VersionChanges.Count > 0
+                ? string.Join("\n", result.VersionChanges)
+                : "Aucun addon installe.";
             MessageBox.Show(
-                $"{result.AddonsInstalled.Count} addon(s) installe(s).\n" +
-                (result.ScanMessage ?? "") +
+                summary + "\n\n" + (result.ScanMessage ?? "") +
                 (result.Errors.Count > 0 ? $"\n\n{result.Errors.Count} erreur(s) — voir le journal." : ""),
                 "Omagad Addons", MessageBoxButtons.OK,
                 result.Errors.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
