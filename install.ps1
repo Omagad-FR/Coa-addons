@@ -1,16 +1,27 @@
 # CoA Addons — installeur
 # Telecharge les addons Conquest of Azeroth (Auctionator fork, CoABuffManager,
 # DPSLogger, EasyLoot) et les installe dans le client Ascension detecte sur ce
-# poste. Copie aussi une base de prix d'hotel des ventes (AuctionatorCoA.lua)
-# si le joueur n'en a pas deja une.
+# poste. La base de prix d'hotel des ventes (AuctionatorCoA.lua) est un choix
+# separe : par defaut elle n'est jamais touchee.
 #
-# Usage :
-#   powershell -ExecutionPolicy Bypass -File install.ps1
-# ou, sans telecharger le fichier a la main :
-#   powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Omagad-FR/coa-addons/main/install.ps1 -useb | iex"
+# Usage (fichier local) :
+#   powershell -ExecutionPolicy Bypass -File install.ps1              # addons seulement
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Scan        # addons + ecrase le scan existant
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -ScanOnly    # scan seulement, n'ecrase pas les addons
+#
+# Usage (sans telecharger le fichier a la main) :
+#   powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb | iex"
+#   powershell -ExecutionPolicy Bypass -Command "&([scriptblock]::Create((iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb).Content)) -Scan"
+
+param(
+    [switch]$Scan,      # ecrase aussi AuctionatorCoA.lua meme s'il existe deja
+    [switch]$ScanOnly   # n'installe pas les addons, ecrase seulement le scan
+)
 
 $ErrorActionPreference = "Stop"
-$RepoZipUrl = "https://github.com/Omagad-FR/coa-addons/archive/refs/heads/main.zip"
+$RepoZipUrl = "https://github.com/Omagad-FR/Coa-addons/archive/refs/heads/main.zip"
+$InstallAddons = -not $ScanOnly
+$OverwriteScan = $Scan -or $ScanOnly
 
 function Write-Log($msg) {
     Write-Host "[coa-addons] $msg"
@@ -164,25 +175,34 @@ if (-not $extracted) {
 
 # --- copie des addons
 
-$sourceAddons = Join-Path $extracted.FullName "Addons"
-Get-ChildItem -LiteralPath $sourceAddons -Directory | ForEach-Object {
-    $target = Join-Path $addonsDest $_.Name
-    if (Test-Path $target) { Remove-Item -LiteralPath $target -Recurse -Force }
-    Copy-Item -LiteralPath $_.FullName -Destination $target -Recurse
-    Write-Log "Addon installe : $($_.Name)"
+if ($InstallAddons) {
+    $sourceAddons = Join-Path $extracted.FullName "Addons"
+    Get-ChildItem -LiteralPath $sourceAddons -Directory | ForEach-Object {
+        $target = Join-Path $addonsDest $_.Name
+        if (Test-Path $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+        Copy-Item -LiteralPath $_.FullName -Destination $target -Recurse
+        Write-Log "Addon installe (ecrase) : $($_.Name)"
+    }
+} else {
+    Write-Log "Addons non touches (-ScanOnly)."
 }
 
-# --- copie de la base de prix (seulement si le joueur n'en a pas deja une,
-# pour ne jamais ecraser un scan personnel plus recent)
+# --- copie de la base de prix. Par defaut : jamais touchee si elle existe deja.
+# -Scan ou -ScanOnly force l'ecrasement (avec sauvegarde .bak de l'ancienne).
 
 $sourceSaved = Join-Path $extracted.FullName "SavedVariables\AuctionatorCoA.lua"
 $targetSaved = Join-Path $savedVarsDest "AuctionatorCoA.lua"
 if (Test-Path $sourceSaved) {
-    if (Test-Path $targetSaved) {
-        Write-Log "AuctionatorCoA.lua existe deja pour ce compte : conserve (pas ecrase)."
-    } else {
+    if (-not (Test-Path $targetSaved)) {
         Copy-Item -LiteralPath $sourceSaved -Destination $targetSaved
         Write-Log "Base de prix d'hotel des ventes installee (premier scan pret a l'emploi)."
+    } elseif ($OverwriteScan) {
+        $backup = "$targetSaved.bak"
+        Copy-Item -LiteralPath $targetSaved -Destination $backup -Force
+        Copy-Item -LiteralPath $sourceSaved -Destination $targetSaved -Force
+        Write-Log "AuctionatorCoA.lua ecrase (ancien scan sauvegarde dans $backup)."
+    } else {
+        Write-Log "AuctionatorCoA.lua existe deja pour ce compte : conserve. Relance avec -Scan pour l'ecraser."
     }
 }
 

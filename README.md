@@ -9,18 +9,30 @@ Addons pour le serveur privé [Ascension](https://ascension.gg) — Conquest of 
 
 ## Installation (Windows)
 
-Ouvre PowerShell et colle :
+Le script cherche automatiquement ton installation Ascension (chemins
+courants, puis scan des disques si besoin). Deux commandes séparées, à coller
+dans PowerShell :
+
+**Installer / mettre à jour les addons** (écrase les addons existants, ne
+touche jamais à ton scan d'hôtel des ventes) :
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Omagad-FR/coa-addons/main/install.ps1 -useb | iex"
+powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb | iex"
 ```
 
-Le script :
-1. cherche automatiquement ton installation Ascension (chemins courants, puis
-   scan des disques si besoin) ;
-2. copie les addons dans `Interface/AddOns` ;
-3. installe une base de prix de départ pour l'hôtel des ventes — seulement si
-   tu n'en as pas déjà une (jamais d'écrasement d'un scan personnel).
+**Installer / écraser la base de prix d'hôtel des ventes** (le full scan
+`AuctionatorCoA.lua` — ne touche pas aux addons, sauvegarde l'ancien scan en
+`.bak` avant d'écraser) :
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "&([scriptblock]::Create((iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb).Content)) -ScanOnly"
+```
+
+Les deux d'un coup (`-Scan` avec la première commande) :
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "&([scriptblock]::Create((iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb).Content)) -Scan"
+```
 
 Relance le jeu ou fais `/reload` ensuite.
 
