@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>OmagadAddonsInstaller</AssemblyName>
+    <RootNamespace>OmagadAddonsInstaller</RootNamespace>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Version>1.0.0</Version>
+    <Product>Omagad Addons Installer</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\logo-circle.png" />
+    <EmbeddedResource Include="Assets\banner.png" />
+  </ItemGroup>
+
+</Project>
