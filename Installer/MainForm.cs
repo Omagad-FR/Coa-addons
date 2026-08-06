@@ -7,18 +7,14 @@ public sealed class MainForm : Form
 {
     private const string KoFiUrl = "https://ko-fi.com/omagad";
 
-    private readonly PictureBox _banner = new() { Dock = DockStyle.Top, Height = 150, SizeMode = PictureBoxSizeMode.Zoom };
-    private readonly Label _status = new() { Dock = DockStyle.Top, Height = 26, Padding = new Padding(10, 6, 0, 0), Text = "Detection du client Ascension..." };
+    private readonly PictureBox _logo = new() { Width = 56, Height = 56, SizeMode = PictureBoxSizeMode.Zoom, Margin = new Padding(0, 4, 12, 0) };
+    private readonly Label _title = new() { Text = "Omagad Addons", Font = new Font("Segoe UI", 16f, FontStyle.Bold), AutoSize = true };
+    private readonly Label _status = new() { Dock = DockStyle.Top, Height = 24, Padding = new Padding(12, 4, 0, 0), Text = "Detection du client Ascension..." };
 
     private readonly CheckBox _installAddonsBox = new() { Text = "Installer les addons", Checked = true, AutoSize = true };
-    private readonly CheckedListBox _addonList = new() { Height = 100, CheckOnClick = true, IntegralHeight = false };
+    private readonly CheckedListBox _addonList = new() { Height = 110, CheckOnClick = true, IntegralHeight = false, Dock = DockStyle.Fill };
     private readonly CheckBox _overwriteScanBox = new() { Text = "Ecraser la base de prix existante si presente", AutoSize = true };
-    private readonly Label _scanHint = new()
-    {
-        Text = "Si tu n'en as pas encore, elle est installee automatiquement de toute facon.",
-        AutoSize = true,
-        ForeColor = Color.Gray
-    };
+    private readonly Label _scanInfo = new() { AutoSize = true, ForeColor = Color.DimGray, Margin = new Padding(0, 4, 0, 0) };
 
     private readonly Button _installButton = new() { Text = "Installer", Width = 140, Height = 36 };
     private readonly Button _kofiButton = new() { Text = "☕ Soutenir sur Ko-fi", Width = 180, Height = 36 };
@@ -32,44 +28,51 @@ public sealed class MainForm : Form
     };
 
     private string? _game;
+    private string? _displayAccount; // meilleure estimation pour l'affichage seul, pas pour l'installation
 
     public MainForm()
     {
         Text = "Omagad Addons";
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(620, 640);
-        MinimumSize = new Size(560, 560);
+        ClientSize = new Size(760, 680);
+        MinimumSize = new Size(680, 560);
 
-        _banner.Image = LoadEmbeddedImage("banner.png");
+        _logo.Image = LoadEmbeddedImage("logo-circle.png");
         foreach (var group in AddonCatalog.Groups)
             _addonList.Items.Add(group.Label, true);
 
-        var options = new GroupBox { Text = "Que veux-tu installer ?", Dock = DockStyle.Top, Height = 230, Padding = new Padding(10) };
-        var optionsLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4 };
-        optionsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        optionsLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
-        optionsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        optionsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        optionsLayout.Controls.Add(_installAddonsBox, 0, 0);
-        optionsLayout.Controls.Add(_addonList, 0, 1);
-        optionsLayout.Controls.Add(_overwriteScanBox, 0, 2);
-        optionsLayout.Controls.Add(_scanHint, 0, 3);
-        options.Controls.Add(optionsLayout);
+        var header = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 70, Padding = new Padding(12, 8, 12, 8) };
+        header.Controls.Add(_logo);
+        header.Controls.Add(_title);
 
+        var addonsGroup = new GroupBox { Text = "Mise a jour des addons", Dock = DockStyle.Top, Height = 200, Padding = new Padding(12) };
+        var addonsLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
+        addonsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        addonsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        addonsLayout.Controls.Add(_installAddonsBox, 0, 0);
+        addonsLayout.Controls.Add(_addonList, 0, 1);
+        addonsGroup.Controls.Add(addonsLayout);
         _installAddonsBox.CheckedChanged += (_, _) => _addonList.Enabled = _installAddonsBox.Checked;
 
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, Padding = new Padding(10, 6, 10, 6) };
+        var scanGroup = new GroupBox { Text = "Mise a jour du Full Scan Auctionator (base de prix)", Dock = DockStyle.Top, Height = 90, Padding = new Padding(12) };
+        var scanLayout = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = false };
+        scanLayout.Controls.Add(_overwriteScanBox);
+        scanLayout.Controls.Add(_scanInfo);
+        scanGroup.Controls.Add(scanLayout);
+
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, Padding = new Padding(12, 6, 12, 6) };
         buttons.Controls.Add(_installButton);
         buttons.Controls.Add(_kofiButton);
 
-        var logPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10, 0, 10, 10) };
+        var logPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12, 0, 12, 12) };
         logPanel.Controls.Add(_log);
 
         Controls.Add(logPanel);
         Controls.Add(buttons);
-        Controls.Add(options);
+        Controls.Add(scanGroup);
+        Controls.Add(addonsGroup);
         Controls.Add(_status);
-        Controls.Add(_banner);
+        Controls.Add(header);
 
         Icon = LoadEmbeddedIcon();
 
@@ -125,6 +128,7 @@ public sealed class MainForm : Form
             ? "Client introuvable automatiquement — clique sur Installer pour le renseigner a la main."
             : $"Jeu detecte : {_game}";
         RefreshInstalledVersions();
+        RefreshScanInfo();
     }
 
     // Affiche la version installee (lue dans le .toc) a cote de chaque addon, ou
@@ -144,6 +148,36 @@ public sealed class MainForm : Form
             _addonList.Items[i] = label;
             _addonList.SetItemChecked(i, wasChecked);
         }
+    }
+
+    // Affiche l'age du scan actuellement installe (date du fichier sur disque), pour
+    // decider si ca vaut le coup de l'ecraser. Purement informatif : le compte utilise
+    // ici est une estimation (le premier compte trouve) — le vrai choix, s'il y en a
+    // plusieurs, se fait au moment d'installer.
+    private void RefreshScanInfo()
+    {
+        if (_game is null) { _scanInfo.Text = ""; return; }
+        var accounts = GameLocator.GetAccounts(_game);
+        if (accounts.Count == 0) { _scanInfo.Text = "Aucun compte detecte."; return; }
+
+        _displayAccount = accounts[0];
+        var scanPath = Path.Combine(_game, "WTF", "Account", _displayAccount, "SavedVariables", AddonCatalog.ScanFileName);
+        if (!File.Exists(scanPath))
+        {
+            _scanInfo.Text = $"Aucun scan installe pour le compte {_displayAccount}.";
+            return;
+        }
+
+        var age = DateTime.Now - File.GetLastWriteTime(scanPath);
+        _scanInfo.Text = $"Scan actuel ({_displayAccount}) : {FormatAge(age)} — {File.GetLastWriteTime(scanPath):dd/MM/yyyy HH:mm}";
+    }
+
+    private static string FormatAge(TimeSpan age)
+    {
+        if (age.TotalMinutes < 1) return "a l'instant";
+        if (age.TotalHours < 1) return $"il y a {(int)age.TotalMinutes} min";
+        if (age.TotalDays < 1) return $"il y a {(int)age.TotalHours} h";
+        return $"il y a {(int)age.TotalDays} j";
     }
 
     private async Task RunInstallAsync()
@@ -167,6 +201,7 @@ public sealed class MainForm : Form
                 }
                 _game = game;
                 RefreshInstalledVersions();
+                RefreshScanInfo();
             }
 
             var accounts = GameLocator.GetAccounts(game);
@@ -233,6 +268,7 @@ public sealed class MainForm : Form
             try { Directory.Delete(Path.GetDirectoryName(extractedRoot)!, recursive: true); } catch { }
 
             RefreshInstalledVersions();
+            RefreshScanInfo();
             Log("Termine. Relance le jeu (ou /reload en jeu) pour charger les addons.");
             var summary = result.VersionChanges.Count > 0
                 ? string.Join("\n", result.VersionChanges)
