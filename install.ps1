@@ -113,10 +113,13 @@ function Get-AddonsFolder($game) {
 function Get-Account($game) {
     $accountsDir = Join-Path $game "WTF\Account"
     if (-not (Test-Path $accountsDir)) { return $null }
-    $names = Get-ChildItem -LiteralPath $accountsDir -Directory |
+    # @(...) force le tableau : avec un seul compte trouve, le pipeline renvoie
+    # une chaine nue et $names[0] indexerait alors son premier CARACTERE, pas
+    # le nom entier (bug reel constate : compte "teisserenc" -> dossier "T").
+    $names = @(Get-ChildItem -LiteralPath $accountsDir -Directory |
         Where-Object { $_.Name.ToUpper() -ne "SAVEDVARIABLES" } |
-        ForEach-Object { $_.Name }
-    if (-not $names) { return $null }
+        ForEach-Object { $_.Name })
+    if (-not $names -or $names.Count -eq 0) { return $null }
     if ($names.Count -eq 1) { return $names[0] }
 
     Write-Host ""
@@ -176,7 +179,9 @@ if (-not $extracted) {
 }
 
 $sourceAddonsRoot = Join-Path $extracted.FullName "Addons"
-$availableAddons = Get-ChildItem -LiteralPath $sourceAddonsRoot -Directory | ForEach-Object { $_.Name }
+# @(...) meme raison que Get-Account : ne jamais laisser un resultat unique
+# s'aplatir en chaine nue.
+$availableAddons = @(Get-ChildItem -LiteralPath $sourceAddonsRoot -Directory | ForEach-Object { $_.Name })
 
 # --------------------------------------------------------------- choix de l'action
 
