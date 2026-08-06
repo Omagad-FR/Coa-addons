@@ -1,27 +1,28 @@
 # CoA Addons — installeur
-# Telecharge les addons Conquest of Azeroth (Auctionator fork, CoABuffManager,
-# DPSLogger, EasyLoot) et les installe dans le client Ascension detecte sur ce
-# poste. La base de prix d'hotel des ventes (AuctionatorCoA_Price_Database.lua)
-# est un choix separe : par defaut elle n'est jamais touchee.
+# Telecharge les addons Conquest of Azeroth et les installe dans le client
+# Ascension detecte sur ce poste. Pose la question a l'ecran si aucune option
+# n'est donnee : tous les addons, certains seulement, ou juste la base de
+# prix d'hotel des ventes (le "full scan" Auctionator).
 #
-# Usage (fichier local) :
-#   powershell -ExecutionPolicy Bypass -File install.ps1              # addons seulement
-#   powershell -ExecutionPolicy Bypass -File install.ps1 -Scan        # addons + ecrase le scan existant
-#   powershell -ExecutionPolicy Bypass -File install.ps1 -ScanOnly    # scan seulement, n'ecrase pas les addons
-#
-# Usage (sans telecharger le fichier a la main) :
+# Usage interactif (recommande) :
 #   powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb | iex"
-#   powershell -ExecutionPolicy Bypass -Command "&([scriptblock]::Create((iwr https://raw.githubusercontent.com/Omagad-FR/Coa-addons/main/install.ps1 -useb).Content)) -Scan"
+#
+# Usage silencieux (pas de question posee) :
+#   ... -File install.ps1 -All                    # tous les addons + le scan
+#   ... -File install.ps1 -AddonsAll               # tous les addons, pas le scan
+#   ... -File install.ps1 -ScanOnly                # juste le scan
+#   ... -File install.ps1 -Addon AuctionatorCoA,EasyLoot   # addons choisis, pas le scan
 
 param(
-    [switch]$Scan,      # ecrase aussi AuctionatorCoA.lua meme s'il existe deja
-    [switch]$ScanOnly   # n'installe pas les addons, ecrase seulement le scan
+    [switch]$All,           # tout : addons + scan, sans poser de question
+    [switch]$AddonsAll,     # tous les addons seulement, sans poser de question
+    [switch]$ScanOnly,      # scan seulement, sans poser de question
+    [string[]]$Addon        # liste d'addons precise, sans poser de question
 )
 
 $ErrorActionPreference = "Stop"
 $RepoZipUrl = "https://github.com/Omagad-FR/Coa-addons/archive/refs/heads/main.zip"
-$InstallAddons = -not $ScanOnly
-$OverwriteScan = $Scan -or $ScanOnly
+$ScanFileName = "AuctionatorCoA_Price_Database.lua"
 
 function Write-Log($msg) {
     Write-Host "[coa-addons] $msg"
@@ -157,7 +158,8 @@ Write-Log "Dossier addons : $addonsDest"
 $savedVarsDest = Join-Path $game "WTF\Account\$account\SavedVariables"
 New-Item -ItemType Directory -Force -Path $savedVarsDest | Out-Null
 
-# --- telechargement
+# --- telechargement (toujours necessaire : la liste d'addons pour le menu
+# vient de l'archive elle-meme, pas d'une liste codee en dur)
 
 $work = Join-Path $env:TEMP ("coa-addons-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $work | Out-Null
@@ -173,42 +175,89 @@ if (-not $extracted) {
     exit 1
 }
 
-# --- copie des addons
+$sourceAddonsRoot = Join-Path $extracted.FullName "Addons"
+$availableAddons = Get-ChildItem -LiteralPath $sourceAddonsRoot -Directory | ForEach-Object { $_.Name }
 
-if ($InstallAddons) {
-    $sourceAddons = Join-Path $extracted.FullName "Addons"
-    Get-ChildItem -LiteralPath $sourceAddons -Directory | ForEach-Object {
-        $target = Join-Path $addonsDest $_.Name
-        if (Test-Path $target) { Remove-Item -LiteralPath $target -Recurse -Force }
-        Copy-Item -LiteralPath $_.FullName -Destination $target -Recurse
-        Write-Log "Addon installe (ecrase) : $($_.Name)"
-    }
+# --------------------------------------------------------------- choix de l'action
+
+$selectedAddons = @()
+$overwriteScan = $false
+
+$noninteractiveFlagGiven = $All -or $AddonsAll -or $ScanOnly -or ($Addon -and $Addon.Count -gt 0)
+
+if ($noninteractiveFlagGiven) {
+    if ($All)        { $selectedAddons = $availableAddons; $overwriteScan = $true }
+    if ($AddonsAll)   { $selectedAddons = $availableAddons }
+    if ($ScanOnly)    { $overwriteScan = $true }
+    if ($Addon)       { $selectedAddons = $Addon }
 } else {
-    Write-Log "Addons non touches (-ScanOnly)."
+    Write-Host ""
+    Write-Host "Que veux-tu faire ?"
+    Write-Host "  [1] Installer tous les addons"
+    Write-Host "  [2] Installer certains addons seulement"
+    Write-Host "  [3] Mettre a jour seulement la base de prix (scan Auctionator)"
+    Write-Host "  [4] Tout : tous les addons + la base de prix"
+    $choice = Read-Host "Choix (1-4)"
+
+    switch ($choice) {
+        "2" {
+            Write-Host ""
+            Write-Host "Addons disponibles :"
+            for ($i = 0; $i -lt $availableAddons.Count; $i++) { Write-Host "  [$i] $($availableAddons[$i])" }
+            $picked = Read-Host "Numeros separes par une virgule (ex: 0,2)"
+            $indexes = $picked -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+            foreach ($ix in $indexes) {
+                $n = 0
+                if ([int]::TryParse($ix, [ref]$n) -and $n -ge 0 -and $n -lt $availableAddons.Count) {
+                    $selectedAddons += $availableAddons[$n]
+                }
+            }
+        }
+        "3" { $overwriteScan = $true }
+        "4" { $selectedAddons = $availableAddons; $overwriteScan = $true }
+        default { $selectedAddons = $availableAddons }  # "1" ou entree vide : tous les addons
+    }
+}
+
+# --- copie des addons choisis
+
+foreach ($name in $selectedAddons) {
+    $source = Join-Path $sourceAddonsRoot $name
+    if (-not (Test-Path $source)) {
+        Write-Log "Addon inconnu, ignore : $name"
+        continue
+    }
+    $target = Join-Path $addonsDest $name
+    if (Test-Path $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+    Copy-Item -LiteralPath $source -Destination $target -Recurse
+    Write-Log "Addon installe (ecrase) : $name"
+}
+if ($selectedAddons.Count -eq 0) {
+    Write-Log "Aucun addon a installer."
 }
 
 # --- copie de la base de prix. Le vrai fichier de scan est
 # AuctionatorCoA_Price_Database.lua (variable AUCTIONATOR_PRICE_DATABASE,
 # declaree dans AuctionatorCoA_Price_Database.toc) — PAS AuctionatorCoA.lua,
 # qui ne contient que les reglages perso (AUCTIONATOR_SAVEDVARS).
-# Par defaut : jamais touche si le fichier existe deja.
-# -Scan ou -ScanOnly force l'ecrasement (avec sauvegarde .bak de l'ancien).
+# Le fichier existant n'est jamais ecrase sans que ce soit demande.
 
-$scanFileName = "AuctionatorCoA_Price_Database.lua"
-$sourceSaved = Join-Path $extracted.FullName "SavedVariables\$scanFileName"
-$targetSaved = Join-Path $savedVarsDest $scanFileName
+$sourceSaved = Join-Path $extracted.FullName "SavedVariables\$ScanFileName"
+$targetSaved = Join-Path $savedVarsDest $ScanFileName
 if (Test-Path $sourceSaved) {
     if (-not (Test-Path $targetSaved)) {
         Copy-Item -LiteralPath $sourceSaved -Destination $targetSaved
         Write-Log "Base de prix d'hotel des ventes installee (premier scan pret a l'emploi)."
-    } elseif ($OverwriteScan) {
+    } elseif ($overwriteScan) {
         $backup = "$targetSaved.bak"
         Copy-Item -LiteralPath $targetSaved -Destination $backup -Force
         Copy-Item -LiteralPath $sourceSaved -Destination $targetSaved -Force
-        Write-Log "$scanFileName ecrase (ancien scan sauvegarde dans $backup)."
+        Write-Log "$ScanFileName ecrase (ancien scan sauvegarde dans $backup)."
     } else {
-        Write-Log "$scanFileName existe deja pour ce compte : conserve. Relance avec -Scan pour l'ecraser."
+        Write-Log "$ScanFileName existe deja pour ce compte : conserve."
     }
+} elseif ($overwriteScan) {
+    Write-Log "ERREUR : $ScanFileName absent de l'archive telechargee."
 }
 
 Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
