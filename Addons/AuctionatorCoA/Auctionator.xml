@@ -826,7 +826,15 @@
 				<Size><AbsDimension x="90" y="22"/>	</Size>
 				<Anchors><Anchor point="RIGHT" relativeTo="Atr_CancelSelectionButton" relativePoint="LEFT"><Offset><AbsDimension x="4" y="0"/></Offset></Anchor></Anchors>
 				<Scripts>
-					<OnClick>Atr_Buy1_Onclick();</OnClick>
+					<OnClick>Atr_Buy1_Onclick(IsShiftKeyDown());</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_TOP");
+						GameTooltip:SetText("Buy");
+						GameTooltip:AddLine("Clic: choisir la quantite / chain buy", 1, 1, 1);
+						GameTooltip:AddLine("Shift-clic: achete 1 pile direct, sans confirmation", 0.2, 1, 0.2);
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>GameTooltip:Hide();</OnLeave>
 				</Scripts>
 			</Button>
 

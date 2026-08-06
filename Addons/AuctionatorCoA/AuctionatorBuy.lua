@@ -27,6 +27,7 @@ local gAtr_Buy_Pass;
 local gAtr_Buy_Session_NumBought		= 0;
 local gAtr_Buy_Session_TotalSpent		= 0;
 local gAtr_Buy_PendingBuy				= nil;
+local gAtr_Buy_Instant					= false;	-- shift-clic sur Buy : achete 1 pile direct, sans fenetre de confirmation
 
 -----------------------------------------
 
@@ -241,7 +242,9 @@ local function Atr_Buy_ShowCurrentSelection(forceFirstPage)
 	
 	Atr_Buy_Confirm_OKBut:SetText (ZT("Buy"))
 	Atr_Buy_Confirm_OKBut:Disable();
-	Atr_Buy_Confirm_Frame:Show();
+	if (not gAtr_Buy_Instant) then
+		Atr_Buy_Confirm_Frame:Show();
+	end
 
 	Atr_HighlightEntry(currentPane.currIndex);
 
@@ -326,12 +329,14 @@ end
 
 -----------------------------------------
 
-function Atr_Buy1_Onclick ()
+function Atr_Buy1_Onclick (instant)
 
 	if (not Atr_ShowingCurrentAuctions()) then
 		return;
 	end
-	
+
+	gAtr_Buy_Instant = instant and true or false;
+
 	Atr_Buy_ResetSession();
 	Atr_Buy_ShowCurrentSelection();
 
@@ -452,6 +457,8 @@ function Atr_Buy_CheckForMatches ()
 			Atr_Buy_Confirm_OKBut:SetText (ZT("Continue"))
 			Atr_Buy_Confirm_OKBut:Disable();
 			Atr_Buy_BuyNextMatch();
+		elseif (gAtr_Buy_Instant) then
+			Atr_Buy_Confirm_OK();
 		else
 			Atr_Buy_Confirm_OKBut:Enable();
 		end

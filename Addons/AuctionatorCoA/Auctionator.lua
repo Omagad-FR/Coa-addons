@@ -909,10 +909,11 @@ function Atr_AuctionFrameTab_OnClick (self, index, down)
 		if (index == Atr_FindTabIndex(MORE_TAB))	then gCurrentPane = gMorePane; end;
 		if (index == Atr_FindTabIndex(COMMANDS_TAB)) then gCurrentPane = gCommandsPane; end;
 
-		if (index == Atr_FindTabIndex(SELL_TAB))	then AuctionatorTitle:SetText ("Auctionator - "..ZT("Sell"));			end;
-		if (index == Atr_FindTabIndex(BUY_TAB))		then AuctionatorTitle:SetText ("Auctionator - "..ZT("Buy"));			end;
-		if (index == Atr_FindTabIndex(MORE_TAB))	then AuctionatorTitle:SetText ("Auctionator - "..ZT("More").."...");	end;
-		if (index == Atr_FindTabIndex(COMMANDS_TAB)) then AuctionatorTitle:SetText ("Auctionator - Commandes"); end;
+		local verSuffix = " (v"..(AuctionatorVersion or "???")..")";
+		if (index == Atr_FindTabIndex(SELL_TAB))	then AuctionatorTitle:SetText ("Auctionator - "..ZT("Sell")..verSuffix);			end;
+		if (index == Atr_FindTabIndex(BUY_TAB))		then AuctionatorTitle:SetText ("Auctionator - "..ZT("Buy")..verSuffix);			end;
+		if (index == Atr_FindTabIndex(MORE_TAB))	then AuctionatorTitle:SetText ("Auctionator - "..ZT("More").."..."..verSuffix);	end;
+		if (index == Atr_FindTabIndex(COMMANDS_TAB)) then AuctionatorTitle:SetText ("Auctionator - Commandes"..verSuffix); end;
 
 		Atr_ClearHlist();
 		Atr_SellControls:Hide();
