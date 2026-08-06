@@ -2,9 +2,14 @@ namespace OmagadAddonsInstaller;
 
 // Petite boite de dialogue texte : sert a demander le chemin du jeu quand la
 // detection automatique echoue.
+//
+// Construite avec un TableLayoutPanel plutot que des Dock=Fill/Bottom
+// melanges : l'ordre d'ajout des controles avec Dock rend le resultat
+// ambigu (bug constate : le bouton OK disparaissait, cache derriere la
+// zone Fill). Un TableLayoutPanel a des lignes explicites, pas d'ambiguite.
 internal sealed class PromptDialog : Form
 {
-    private readonly TextBox _input = new() { Dock = DockStyle.Top, Margin = new Padding(0, 8, 0, 0) };
+    private readonly TextBox _input = new() { Dock = DockStyle.Fill };
 
     public string Value => _input.Text;
 
@@ -15,23 +20,26 @@ internal sealed class PromptDialog : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(480, 130);
+        ClientSize = new Size(480, 150);
 
-        var label = new Label { Text = message, Dock = DockStyle.Top, AutoSize = false, Height = 40, Padding = new Padding(0, 0, 0, 4) };
         _input.Text = defaultValue;
 
-        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Dock = DockStyle.Right, Width = 90 };
-        var cancel = new Button { Text = "Annuler", DialogResult = DialogResult.Cancel, Dock = DockStyle.Right, Width = 90 };
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Height = 40 };
-        buttons.Controls.Add(cancel);
-        buttons.Controls.Add(ok);
+        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Width = 90, Anchor = AnchorStyles.Right };
+        var cancel = new Button { Text = "Annuler", DialogResult = DialogResult.Cancel, Width = 90, Anchor = AnchorStyles.Right };
 
-        var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
-        panel.Controls.Add(_input);
-        panel.Controls.Add(label);
+        var buttonRow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, AutoSize = true };
+        buttonRow.Controls.Add(cancel);
+        buttonRow.Controls.Add(ok);
 
-        Controls.Add(panel);
-        Controls.Add(buttons);
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(12) };
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        layout.Controls.Add(new Label { Text = message, AutoSize = false, Dock = DockStyle.Fill, Height = 60 }, 0, 0);
+        layout.Controls.Add(_input, 0, 1);
+        layout.Controls.Add(buttonRow, 0, 2);
+
+        Controls.Add(layout);
         AcceptButton = ok;
         CancelButton = cancel;
     }
@@ -51,22 +59,25 @@ internal sealed class ChoiceDialog : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(420, 260);
+        ClientSize = new Size(420, 290);
 
-        var label = new Label { Text = message, Dock = DockStyle.Top, AutoSize = false, Height = 36 };
         _list.Items.AddRange(options.Cast<object>().ToArray());
         if (_list.Items.Count > 0) _list.SelectedIndex = 0;
+        _list.DoubleClick += (_, _) => { if (_list.SelectedItem is not null) DialogResult = DialogResult.OK; };
 
-        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Dock = DockStyle.Right, Width = 90 };
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Height = 40 };
-        buttons.Controls.Add(ok);
+        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Width = 90, Anchor = AnchorStyles.Right };
+        var buttonRow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, AutoSize = true };
+        buttonRow.Controls.Add(ok);
 
-        var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
-        panel.Controls.Add(_list);
-        panel.Controls.Add(label);
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(12) };
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        layout.Controls.Add(new Label { Text = message, AutoSize = false, Dock = DockStyle.Fill, Height = 30 }, 0, 0);
+        layout.Controls.Add(_list, 0, 1);
+        layout.Controls.Add(buttonRow, 0, 2);
 
-        Controls.Add(panel);
-        Controls.Add(buttons);
+        Controls.Add(layout);
         AcceptButton = ok;
     }
 }

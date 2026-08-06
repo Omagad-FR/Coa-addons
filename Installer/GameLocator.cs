@@ -94,17 +94,32 @@ internal static class GameLocator
 
     // Retourne toujours une liste (jamais un scalaire nu) : c'est le piege qui
     // a cause le bug "compte tronque a une lettre" dans install.ps1.
+    //
+    // Tries en tete les comptes dont SavedVariables contient deja des
+    // fichiers : un compte a une lettre (residu d'un ancien bug) a son
+    // dossier SavedVariables vide et se retrouve donc en dernier, jamais
+    // presente par defaut.
     public static List<string> GetAccounts(string game)
     {
         var accountsDir = Path.Combine(game, "WTF", "Account");
-        var result = new List<string>();
-        if (!Directory.Exists(accountsDir)) return result;
+        var names = new List<string>();
+        if (!Directory.Exists(accountsDir)) return names;
         foreach (var dir in Directory.EnumerateDirectories(accountsDir))
         {
             var name = Path.GetFileName(dir);
             if (!string.Equals(name, "SavedVariables", StringComparison.OrdinalIgnoreCase))
-                result.Add(name);
+                names.Add(name);
         }
-        return result;
+
+        return names
+            .OrderByDescending(name => HasSavedVariables(game, name))
+            .ThenBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static bool HasSavedVariables(string game, string account)
+    {
+        var dir = Path.Combine(game, "WTF", "Account", account, "SavedVariables");
+        return Directory.Exists(dir) && Directory.EnumerateFiles(dir).Any();
     }
 }
