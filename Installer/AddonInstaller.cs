@@ -148,6 +148,28 @@ internal static class AddonInstaller
         return result;
     }
 
+    // Lit AUCTIONATOR_LAST_SCAN_TIME (epoch Unix) dans AuctionatorCoA.lua — PAS la date de
+    // derniere modification du fichier AuctionatorCoA_Price_Database.lua, qui se met a jour a
+    // chaque /reload meme sans nouveau scan (constate en usage reel : "il y a 2 min" affiche
+    // alors que le dernier scan datait de la veille).
+    public static DateTime? ReadLastScanTime(string savedVarsFolder)
+    {
+        var path = Path.Combine(savedVarsFolder, "AuctionatorCoA.lua");
+        if (!File.Exists(path)) return null;
+        foreach (var line in File.ReadLines(path))
+        {
+            var trimmed = line.TrimStart();
+            if (!trimmed.StartsWith("AUCTIONATOR_LAST_SCAN_TIME", StringComparison.Ordinal)) continue;
+            var eq = trimmed.IndexOf('=');
+            if (eq < 0) return null;
+            var value = trimmed[(eq + 1)..].Trim();
+            return long.TryParse(value, out var epoch)
+                ? DateTimeOffset.FromUnixTimeSeconds(epoch).LocalDateTime
+                : null;
+        }
+        return null;
+    }
+
     // Lit "## Version: ..." dans <addonsFolder>\<folderName>\<folderName>.toc. Renvoie null si
     // l'addon n'est pas installe ou si son .toc n'a pas de champ Version (cas des dependances
     // AuctionatorCoA_Price_Database/Pricing_History, qui n'en declarent pas).

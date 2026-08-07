@@ -155,10 +155,10 @@ public sealed class MainForm : Form
         }
     }
 
-    // Affiche l'age du scan actuellement installe (date du fichier sur disque), pour
-    // decider si ca vaut le coup de l'ecraser. Purement informatif : le compte utilise
-    // ici est une estimation (le premier compte trouve) — le vrai choix, s'il y en a
-    // plusieurs, se fait au moment d'installer.
+    // Affiche l'age du dernier scan (AUCTIONATOR_LAST_SCAN_TIME, pas la date du fichier
+    // sur disque — celle-ci change a chaque /reload meme sans nouveau scan, constate en
+    // usage reel). Purement informatif : le compte utilise ici est une estimation (le
+    // premier compte trouve) — le vrai choix, s'il y en a plusieurs, se fait a l'installation.
     private void RefreshScanInfo()
     {
         if (_game is null) { _scanInfo.Text = ""; return; }
@@ -166,15 +166,18 @@ public sealed class MainForm : Form
         if (accounts.Count == 0) { _scanInfo.Text = "Aucun compte detecte."; return; }
 
         _displayAccount = accounts[0];
-        var scanPath = Path.Combine(_game, "WTF", "Account", _displayAccount, "SavedVariables", AddonCatalog.ScanFileName);
+        var savedVars = Path.Combine(_game, "WTF", "Account", _displayAccount, "SavedVariables");
+        var scanPath = Path.Combine(savedVars, AddonCatalog.ScanFileName);
         if (!File.Exists(scanPath))
         {
             _scanInfo.Text = $"Aucun scan installe pour le compte {_displayAccount}.";
             return;
         }
 
-        var age = DateTime.Now - File.GetLastWriteTime(scanPath);
-        _scanInfo.Text = $"Scan actuel ({_displayAccount}) : {FormatAge(age)} — {File.GetLastWriteTime(scanPath):dd/MM/yyyy HH:mm}";
+        var lastScan = AddonInstaller.ReadLastScanTime(savedVars);
+        _scanInfo.Text = lastScan is not null
+            ? $"Dernier scan ({_displayAccount}) : {FormatAge(DateTime.Now - lastScan.Value)} — {lastScan:dd/MM/yyyy HH:mm}"
+            : $"Base de prix presente ({_displayAccount}), date du dernier scan introuvable (AuctionatorCoA.lua absent ou jamais scanne).";
     }
 
     private static string FormatAge(TimeSpan age)
