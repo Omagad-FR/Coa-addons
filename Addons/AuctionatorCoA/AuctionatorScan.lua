@@ -999,6 +999,7 @@ local gFullScanBargainCandidates = {};
 local gLastBargains = {};
 local gFullScanCompleted = false;
 local gFullScanMode = "full";
+local gFullScanEpicsAutoAdded = 0;	-- count of epics auto-added to watch during this Full Scan
 
 local gQuickScanItems = {};
 local gQuickScanItemIndex = 0;
@@ -1127,6 +1128,7 @@ function Atr_FullScanStart()
 		gFullScanStartedAt		= Atr_ptime or 0;
 		gFullScanUseGetAll		= canQueryAll and true or false;
 		gFullScanBargainCandidates = {};
+		gFullScanEpicsAutoAdded	= 0;
 		gFullScanCompleted		= false;
 		gFullScanMode			= "full";
 
@@ -1198,6 +1200,27 @@ local function Atr_WatchFindIndex (wantedName)
 		end
 	end
 	return nil;
+end
+
+local function Atr_WatchAutoAddEpic (name, itemLink)
+
+	if (AUCTIONATOR_SAVEDVARS.BARGAIN_AUTO_WATCH_EPICS == 0) then
+		return;
+	end
+
+	if (not name or not itemLink or Atr_WatchFindIndex(name)) then
+		return;
+	end
+
+	-- GetItemInfo can return nil until the client has cached the item; in that
+	-- case we simply miss this occurrence and pick it up on a later scan.
+	local _,_,itemRarity,_,_,_,_,_,itemEquipLoc = GetItemInfo (itemLink);
+	if (itemRarity == 4 and itemEquipLoc ~= nil and itemEquipLoc ~= "") then
+		Atr_WatchEnsureData();
+		table.insert (AUCTIONATOR_SAVEDVARS.BARGAIN_WATCHLIST, name);
+		gFullScanEpicsAutoAdded = gFullScanEpicsAutoAdded + 1;
+	end
+
 end
 
 local function Atr_WatchMedianReference (name)
@@ -1472,17 +1495,23 @@ function Atr_HandleBargainCommand (param1, param2)
 		AUCTIONATOR_SAVEDVARS.BARGAIN_MAX_RESULTS = math.max (1, math.min (50, math.floor(tonumber(param2))));
 	elseif (param1 == "cut" and tonumber(param2)) then
 		AUCTIONATOR_SAVEDVARS.BARGAIN_AH_CUT = math.max (0, math.min (25, tonumber(param2)));
+	elseif (param1 == "autowatch" and param2 == "on") then
+		AUCTIONATOR_SAVEDVARS.BARGAIN_AUTO_WATCH_EPICS = 1;
+	elseif (param1 == "autowatch" and param2 == "off") then
+		AUCTIONATOR_SAVEDVARS.BARGAIN_AUTO_WATCH_EPICS = 0;
 	elseif (param1 == "list") then
 		Atr_PrintBargainAlerts (gLastBargains);
 		return;
 	end
 
 	local enabled = AUCTIONATOR_SAVEDVARS.BARGAIN_ALERTS == 1 and "ON" or "OFF";
+	local autowatch = AUCTIONATOR_SAVEDVARS.BARGAIN_AUTO_WATCH_EPICS == 0 and "OFF" or "ON";
 	zc.msg_atr ("Alertes bonnes affaires: "..enabled
 		.." | reduction >= "..(AUCTIONATOR_SAVEDVARS.BARGAIN_DISCOUNT or 50).."%"
 		.." | profit net >= "..zc.priceToMoneyString(AUCTIONATOR_SAVEDVARS.BARGAIN_MIN_PROFIT or 50000)
-		.." | commission "..(AUCTIONATOR_SAVEDVARS.BARGAIN_AH_CUT or 5).."%");
-	zc.msg_atr ("Commandes: /atr deals on|off, discount 50, profit 5, cut 5, max 20, list");
+		.." | commission "..(AUCTIONATOR_SAVEDVARS.BARGAIN_AH_CUT or 5).."%"
+		.." | auto-surveillance epiques: "..autowatch);
+	zc.msg_atr ("Commandes: /atr deals on|off, discount 50, profit 5, cut 5, autowatch on|off, max 20, list");
 end
 
 -----------------------------------------
@@ -1682,6 +1711,10 @@ function Atr_FullScanAnalyze()
 				if (itemPrice > 0) then
 					Atr_RecordBargainCandidate (name, GetAuctionItemLink("list", x), count, buyoutPrice, owner);
 
+					if (quality == 4) then
+						Atr_WatchAutoAddEpic (name, GetAuctionItemLink("list", x));
+					end
+
 					if (not lowprices[name]) then
 						lowprices[name] = {BIGNUM,BIGNUM,BIGNUM};		-- one extra for later
 					end
@@ -1802,6 +1835,11 @@ function Atr_FullScanFinish(completed)
 		zc.msg_atr ("Duree du scan complet: "..Atr_FormatScanDuration(scanDuration)..".");
 	end
 	Atr_PrintBargainAlerts (bargains);
+
+	if (gFullScanEpicsAutoAdded > 0) then
+		zc.msg_atr (gFullScanEpicsAutoAdded.." epique(s) equipable(s) ajoute(s) a la surveillance ("
+			..Atr_GetWatchlistCount().." au total) - /atr watch scan les couvrira desormais en quelques secondes.");
+	end
 
 	Atr_FullScanSetStatus (ZT("Cleaning up"));
 

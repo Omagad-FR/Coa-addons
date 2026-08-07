@@ -815,6 +815,7 @@ function Atr_UpdateCommandsHelp ()
 		.."|cffffffff/atr deals cut 5|r - commission de l'HDV en pourcentage.<br/>"
 		.."|cffffffff/atr deals max 20|r - nombre maximal d'alertes affichees.<br/>"
 		.."|cffffffff/atr deals list|r - reaffiche les derniers resultats.<br/>"
+		.."|cffffffff/atr deals autowatch on|off|r - ajoute automatiquement les epiques equipables croises en Full Scan a la surveillance.<br/>"
 		.."Reglage actuel : -"..discount.."%, profit "..zc.priceToMoneyString(profit)
 		..", commission "..cut.."%.</p>"
 		.."<h1>|cffffd100Objets de valeur|r</h1>"
@@ -897,12 +898,12 @@ function Atr_AuctionFrameTab_OnClick (self, index, down)
 
 		PanelTemplates_SetTab(AuctionFrame, index);
 
-		AuctionFrameTopLeft:SetTexture	("Interface\\AddOns\\Auctionator\\Images\\Atr_topleft");
-		AuctionFrameBotLeft:SetTexture	("Interface\\AddOns\\Auctionator\\Images\\Atr_botleft");
-		AuctionFrameTop:SetTexture		("Interface\\AddOns\\Auctionator\\Images\\Atr_top");
-		AuctionFrameTopRight:SetTexture	("Interface\\AddOns\\Auctionator\\Images\\Atr_topright");
-		AuctionFrameBot:SetTexture		("Interface\\AddOns\\Auctionator\\Images\\Atr_bot");
-		AuctionFrameBotRight:SetTexture	("Interface\\AddOns\\Auctionator\\Images\\Atr_botright");
+		AuctionFrameTopLeft:SetTexture	("Interface\\AddOns\\AuctionatorCoA\\Images\\Atr_topleft");
+		AuctionFrameBotLeft:SetTexture	("Interface\\AddOns\\AuctionatorCoA\\Images\\Atr_botleft");
+		AuctionFrameTop:SetTexture		("Interface\\AddOns\\AuctionatorCoA\\Images\\Atr_top");
+		AuctionFrameTopRight:SetTexture	("Interface\\AddOns\\AuctionatorCoA\\Images\\Atr_topright");
+		AuctionFrameBot:SetTexture		("Interface\\AddOns\\AuctionatorCoA\\Images\\Atr_bot");
+		AuctionFrameBotRight:SetTexture	("Interface\\AddOns\\AuctionatorCoA\\Images\\Atr_botright");
 
 		if (index == Atr_FindTabIndex(SELL_TAB))	then gCurrentPane = gSellPane; end;
 		if (index == Atr_FindTabIndex(BUY_TAB))		then gCurrentPane = gShopPane; end;
@@ -931,7 +932,7 @@ function Atr_AuctionFrameTab_OnClick (self, index, down)
 		Atr_CheckActiveButton:Hide();
 		Atr_Back_Button:Hide()
 		Atr_Buy1_Button:Hide();
-		Atr_CommandsHTML:Hide();
+		Atr_CommandsScrollFrame:Hide();
 
 		AuctionFrameMoneyFrame:Hide();
 
@@ -949,7 +950,7 @@ function Atr_AuctionFrameTab_OnClick (self, index, down)
 			Atr_ListTabs:Hide();
 			Atr_CancelSelectionButton:Hide();
 			Atr_UpdateCommandsHelp();
-			Atr_CommandsHTML:Show();
+			Atr_CommandsScrollFrame:Show();
 		else
 			Atr_HeadingsBar:Show();
 			AuctionatorScrollFrame:Show();
@@ -2662,7 +2663,7 @@ function Atr_GetUCIcon (itemName)
 		local absBestPrice = scan.absoluteBest.itemPrice;
 
 		if (scan.yourBestPrice <= absBestPrice and scan.yourWorstPrice > absBestPrice) then
-			icon = "|TInterface\\AddOns\\Auctionator\\Images\\CrossAndCheck:18:18:0:0|t "
+			icon = "|TInterface\\AddOns\\AuctionatorCoA\\Images\\CrossAndCheck:18:18:0:0|t "
 			undercutFound = true;
 		elseif (scan.yourBestPrice <= absBestPrice) then
 			icon = "|TInterface\\RAIDFRAME\\ReadyCheck-Ready:18:18:0:0|t "

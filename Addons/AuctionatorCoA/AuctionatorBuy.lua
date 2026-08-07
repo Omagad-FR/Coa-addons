@@ -193,17 +193,15 @@ end
 
 -----------------------------------------
 
--- Positionne la fenetre de confirmation d'achat pres du curseur, pour cliquer
--- "Acheter" sans deplacer la souris jusqu'a sa position d'ancrage fixe.
+-- Positionne la fenetre de confirmation d'achat directement sur le bouton
+-- "Buy" qui vient d'etre clique, pour que le bouton "Acheter" de la
+-- confirmation tombe sous la souris sans avoir a la deplacer.
 local function Atr_Buy_PositionNearCursor(frame)
 
-	local scale = frame:GetEffectiveScale();
-	local x, y = GetCursorPosition();
-	x = x / scale;
-	y = y / scale;
-
 	frame:ClearAllPoints();
-	frame:SetPoint ("TOPLEFT", UIParent, "BOTTOMLEFT", x + 12, y - 12);
+	if (Atr_Buy1_Button) then
+		frame:SetPoint ("CENTER", Atr_Buy1_Button, "CENTER", 0, 0);
+	end
 	frame:SetClampedToScreen (true);
 
 end

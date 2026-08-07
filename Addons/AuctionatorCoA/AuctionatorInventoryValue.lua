@@ -20,6 +20,22 @@ local gValueGuildRequestedAt = nil;
 local gValueGuildReadyAt = nil;
 local gValueGuildContext = "guild";
 
+local Atr_ValueScanTooltip = CreateFrame("GameTooltip", "Atr_ValueScanTooltip", nil, "GameTooltipTemplate");
+Atr_ValueScanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE");
+
+local function Atr_ValueIsSoulbound (bagID, slot)
+	Atr_ValueScanTooltip:ClearLines();
+	Atr_ValueScanTooltip:SetBagItem(bagID, slot);
+	for i = 1, Atr_ValueScanTooltip:NumLines() do
+		local line = _G["Atr_ValueScanTooltipTextLeft"..i];
+		local text = line and line:GetText();
+		if (text == ITEM_SOULBOUND) then
+			return true;
+		end
+	end
+	return false;
+end
+
 local function Atr_ValueEnsureData ()
 	if (type(AUCTIONATOR_INVENTORY_VALUE_DATA) ~= "table") then
 		AUCTIONATOR_INVENTORY_VALUE_DATA = {};
@@ -87,7 +103,7 @@ local function Atr_ValueScanContainer (items, bagID)
 	local slots = GetContainerNumSlots(bagID) or 0;
 	for slot = 1,slots do
 		local itemLink = GetContainerItemLink(bagID, slot);
-		if (itemLink) then
+		if (itemLink and not Atr_ValueIsSoulbound(bagID, slot)) then
 			local _,itemCount = GetContainerItemInfo(bagID, slot);
 			Atr_ValueAddItem(items, itemLink, itemCount);
 		end
@@ -435,6 +451,16 @@ local function Atr_ValueCreateFrame ()
 		tile = true; tileSize = 32; edgeSize = 32;
 		insets = { left = 11; right = 12; top = 12; bottom = 11; };
 	});
+	frame:SetBackdropColor(0, 0, 0, 1);
+	frame:SetBackdropBorderColor(1, 1, 1, 1);
+
+	-- Le skin Blizzard (bordure ornementee) laisse des trous transparents dans
+	-- les coins/bords : une couche pleine noire derriere tout le cadre bouche
+	-- ces trous, sinon le monde du jeu se voit encore a travers.
+	local backing = frame:CreateTexture(nil, "BACKGROUND", nil, -8);
+	backing:SetAllPoints(frame);
+	backing:SetTexture(0, 0, 0, 1);
+
 	frame:Hide();
 	gValueFrame = frame;
 
@@ -666,6 +692,7 @@ end
 
 local Atr_ValueEvents = CreateFrame("Frame");
 Atr_ValueEvents:RegisterEvent("PLAYER_ENTERING_WORLD");
+Atr_ValueEvents:RegisterEvent("AUCTION_HOUSE_SHOW");
 Atr_ValueEvents:RegisterEvent("BAG_UPDATE");
 Atr_ValueEvents:RegisterEvent("BANKFRAME_OPENED");
 Atr_ValueEvents:RegisterEvent("BANKFRAME_CLOSED");
@@ -677,6 +704,8 @@ Atr_ValueEvents:SetScript("OnEvent", function(self, eventName, arg1)
 	if (eventName == "PLAYER_ENTERING_WORLD") then
 		Atr_ValueEnsureData();
 		Atr_ValueScanBags();
+		Atr_ValueCreateAuctionButton();
+	elseif (eventName == "AUCTION_HOUSE_SHOW") then
 		Atr_ValueCreateAuctionButton();
 	elseif (eventName == "BAG_UPDATE") then
 		gValueBagRefreshAt = GetTime() + 0.5;

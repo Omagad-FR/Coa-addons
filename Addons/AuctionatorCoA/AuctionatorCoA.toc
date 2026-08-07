@@ -1,6 +1,6 @@
 ## Interface: 30300
 ## Title: Auctionator (CoA)
-## Version: 2.10.0-CoA-fork1
+## Version: 2.10.1-CoA
 ## Author: Zirco, fork CoA
 ## Dependencies: AuctionatorCoA_Pricing_History, AuctionatorCoA_Price_Database
 ## X-Website: http://auctionator-addon.com

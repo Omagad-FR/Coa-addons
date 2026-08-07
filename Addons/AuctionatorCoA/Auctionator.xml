@@ -333,12 +333,20 @@
 		<Frames>
 			
 			
-			<SimpleHTML name="Atr_CommandsHTML" hidden="true">
-				<Size><AbsDimension x="500" y="370" /></Size>
+			<ScrollFrame name="Atr_CommandsScrollFrame" inherits="UIPanelScrollFrameTemplate" hidden="true">
+				<Size><AbsDimension x="500" y="360" /></Size>
 				<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-185" y="-55"/></Offset></Anchor></Anchors>
-				<FontString inherits="GameFontHighlightSmall" justifyH="LEFT" justifyV="TOP"/>
-				<FontStringHeader1 inherits="GameFontNormal" justifyH="LEFT"/>
-			</SimpleHTML>
+				<Scripts>
+					<OnMouseWheel>ScrollFrameTemplate_OnMouseWheel(self, delta);</OnMouseWheel>
+				</Scripts>
+				<ScrollChild>
+					<SimpleHTML name="Atr_CommandsHTML">
+						<Size><AbsDimension x="465" y="900" /></Size>
+						<FontString inherits="GameFontHighlightSmall" justifyH="LEFT" justifyV="TOP"/>
+						<FontStringHeader1 inherits="GameFontNormal" justifyH="LEFT"/>
+					</SimpleHTML>
+				</ScrollChild>
+			</ScrollFrame>
 
 			<Frame name="Atr_DropDown1" inherits="UIDropDownMenuTemplate">
 				<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-170" y="-49"/></Offset></Anchor></Anchors>
