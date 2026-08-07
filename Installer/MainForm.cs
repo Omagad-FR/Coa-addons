@@ -9,6 +9,7 @@ public sealed class MainForm : Form
 
     private readonly PictureBox _logo = new() { Width = 56, Height = 56, SizeMode = PictureBoxSizeMode.Zoom, Margin = new Padding(0, 4, 12, 0) };
     private readonly Label _title = new() { Text = "Omagad Addons", Font = new Font("Segoe UI", 16f, FontStyle.Bold), AutoSize = true };
+    private readonly Label _buildLabel = new() { Text = $"Build {BuildInfo.Stamp}", AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
     private readonly Label _status = new() { Dock = DockStyle.Top, Height = 24, Padding = new Padding(12, 4, 0, 0), Text = "Detection du client Ascension..." };
 
     private readonly CheckBox _installAddonsBox = new() { Text = "Installer les addons", Checked = true, AutoSize = true };
@@ -41,9 +42,13 @@ public sealed class MainForm : Form
         foreach (var group in AddonCatalog.Groups)
             _addonList.Items.Add(group.Label, true);
 
+        var titleStack = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0, 4, 0, 0) };
+        titleStack.Controls.Add(_title);
+        titleStack.Controls.Add(_buildLabel);
+
         var header = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 70, Padding = new Padding(12, 8, 12, 8) };
         header.Controls.Add(_logo);
-        header.Controls.Add(_title);
+        header.Controls.Add(titleStack);
 
         var addonsGroup = new GroupBox { Text = "Mise a jour des addons", Dock = DockStyle.Top, Height = 200, Padding = new Padding(12) };
         var addonsLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };

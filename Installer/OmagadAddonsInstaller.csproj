@@ -19,4 +19,23 @@
     <EmbeddedResource Include="Assets\banner.png" />
   </ItemGroup>
 
+  <!-- Genere BuildInfo.cs avec la date de compilation : affiche dans la fenetre pour
+       distinguer d'un coup d'oeil une version fraiche d'une copie mise en cache. -->
+  <Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <BuildStamp>$([System.DateTime]::Now.ToString(&quot;yyyy-MM-dd HH:mm&quot;))</BuildStamp>
+    </PropertyGroup>
+    <ItemGroup>
+      <BuildInfoLines Include="namespace OmagadAddonsInstaller%3B" />
+      <BuildInfoLines Include="internal static class BuildInfo" />
+      <BuildInfoLines Include="{" />
+      <BuildInfoLines Include="    public const string Stamp = &quot;$(BuildStamp)&quot;%3B" />
+      <BuildInfoLines Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)BuildInfo.cs" Lines="@(BuildInfoLines)" Overwrite="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)BuildInfo.cs" />
+    </ItemGroup>
+  </Target>
+
 </Project>
